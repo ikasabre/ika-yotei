@@ -1,0 +1,63 @@
+var AuthorizationCode ='Bearer <D2BJZQiHIzokf0HbsHWRBNhlFwZ4vhJiMclBUyTn0qB>';
+
+function main(){
+  var msg = getCalendarEvent();
+  Logger.log(msg);
+  if(msg !== '[info]'){
+    sendHttpPost(msg);
+  }
+}
+
+// 翌日の日付を{year:'yyyy', month:'mm', date:'dd'}の形式で返す
+function nextDate(year, month, date) {
+    var d = new Date(year, month - 1, date);
+    d.setDate(d.getDate() + 1);
+    return {
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        date: d.getDate()
+    };
+}
+
+// Calendarから予定翌日の予定のTitleを取得し、メッセージとして返却する
+function getCalendarEvent(){
+  var message;
+  // 翌日の日付を取得
+  var today = new Date();
+  var yyyy = today.getFullYear();
+  var mm = today.getMonth()+1;
+  var dd = today.getDate();
+  var td = nextDate(yyyy, mm, dd);
+  var targetDate = td.year + '/' + td.month + '/' + td.date;
+
+  // googleCalendarからeventTitleを取得
+  var myCals=CalendarApp.getCalendarById(‘ika.bot.031320@gmail.com');
+  var myEvents=myCals.getEventsForDay(new Date(targetDate));
+  var strBody = '[info]'
+
+  // eventがあればメッセージに格納
+  if(myEvents){
+      for(var i=0;i<myEvents.length;i++){
+        var strTitle = myEvents[i].getTitle();
+        strBody = strBody + '\n' + strTitle + '\n'; 
+      }
+    message = strBody;
+  }
+  return message;
+}
+
+// LINE NotifyにHTTP POSTでメッセージを送信する
+function sendHttpPost(postMassage) {
+   var payload ={
+     "message": postMassage
+   };
+
+   var options ={
+     "method" : "post",
+     "headers": {
+       Authorization: AuthorizationCode,
+     },
+     "payload" : payload
+   };
+   UrlFetchApp.fetch("https://notify-api.line.me/api/notify", options);
+ }
